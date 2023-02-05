@@ -1,11 +1,18 @@
+#include <ncurses.h>
 #include <stdio.h> 
 #include <dirent.h>
 #include <unistd.h>
+#include <string.h>
+#include <curses.h>
+
 #define MAX 1000
+#define WIDTH 130
 
 int str_len(char strr[]){
     char ans = strlen(strr);
     if (strr[ans - 1] == '\r') return ans - 1;
+    if (strr[ans - 2] == '\r') return ans - 2;
+    if (strr[ans - 1] == '\n') return ans - 1;
     else return ans;
 }
 
@@ -85,7 +92,7 @@ int make_dir(char dir_name[]){
     else return 1;
 }
 
-int dir_addresses(char file_address[], char address[][100]){
+int dir_addresses(char file_address[], char address[][MAX]){
     int t = 0, j = 0;
     char letter = file_address[0];
     int letter_index = 0;
@@ -151,14 +158,14 @@ int make_message(char old_message[], char new_message[]){//making \n and making 
     return head;
 }
 
-char inp(char start, char input[]){//input without "
+char inp(char start, char input[], WINDOW *command){//input without "
     input[0] = start;
     int index = 1;
     char letter;
-    scanf("%c", &letter);
+    letter = wgetch(command);
     while (letter != ' ' && letter != '\n'){
         input[index++] = letter;
-        scanf("%c", &letter);
+        letter = wgetch(command);
     }
     input[index] = '\0';
     if (letter == ' '){
@@ -167,17 +174,17 @@ char inp(char start, char input[]){//input without "
     else return '\n';
 }
 
-int inp_q(char input[]){//input with "
+int inp_q(char input[], WINDOW *command){//input with "
     char a1 = 'a';
     char a2 = 'a';
     char a3 = 'a';
     char index = 0;
-    scanf("%c", &a1);
+    a1 = wgetch(command);
     while (!((a1 == '"' && a2 != '\\') || (a1 == '"' && a2 == '\\' && a3 == '\\'))){
         input[index++] = a1;
         a3 = a2;
         a2 = a1;
-        scanf("%c", &a1);
+        a1 = wgetch(command);
     }
     if (a1 == '"' && a2 == '\\' && a3 == '\\'){
         input[index] = '\0';
@@ -193,6 +200,7 @@ void insert(char file_name[], char message[], int ln, int pos){
     FILE *filetemp = fopen("temp_file.txt", "w");
     //declaring line for getting each line of the file. rest is for saving rest of the file from the given position.
     char line[MAX]; line[0] = '`';
+    char rest[MAX][MAX];
     //jumping to the line
     for (int l = 0; l < ln - 1; l++){
         fgets(line, MAX, file);
@@ -242,6 +250,7 @@ void rmv(char file_name[], int ln, int pos, int size, char dir){
     FILE *file = fopen(file_name, "r+");
     //declaring line for getting each line of the file. rest is for saving rest of the file from the given position.
     char line[MAX]; line[0] = '`';
+    char rest[MAX][MAX];
     //jumping to the line
     for (int l = 0; l < ln - 1; l++){
         fgets(line, MAX, file);
@@ -294,6 +303,7 @@ int cpy(char file_name[], int ln, int pos, int size, char dir){
     for (int i = 0; i < size; i++){
         fscanf(file, "%c", &ans[i]);
     }
+    ans[size] = '\0';
     fclose(file);
     //copying
     FILE *filecpy = fopen("clipboard.txt", "w");
@@ -356,7 +366,7 @@ int split_space(char line[], char final_line[][100]){
     int head = 0;
     int index = 0;
     for (int i = 0; i < size + 1; i++){
-        if (line[i] != ' ' && line[i] != '\0' && line[i] != '\n'){
+        if (line[i] != ' ' && line[i] != '\0' && line[i] != '\n' && line[i] != '\r'){
             final_line[head][index] = line[i];
             index++;
         }
@@ -365,6 +375,7 @@ int split_space(char line[], char final_line[][100]){
             head++;
             index = 0;
         }
+        
         if (line[i] == '\0' || line[i] == '\n') break;
     }
     return head;
@@ -432,7 +443,7 @@ int findd(char target[][100], int target_size, char file_name[], int star_list[]
     while (line[0] != '\0'){
         line[0] = '\0';
         fgets(line, MAX, file);
-        char words[MAX][MAX];
+        char words[MAX][100];
         int word_tedad = split_space(line, words);
         for (int index = 0; index <= word_tedad - target_size; index++){
             int match = 1;//checking if this location is a match
@@ -629,11 +640,11 @@ int text_cmp(char file_name1[], char file_name2[]){
         line1[0] = '\0'; line2[0] = '\0';
         fgets(line1, MAX, file1);
         fgets(line2, MAX, file2);
-        if(line1[0] == '\0' && line2[0] != '\0'){
+        if(line1[0] == '\0'){
             big2 = 1;
             break;
         }
-        if (line2[0] == '\0' && line1[0] != '\0'){
+        if (line2[0] == '\0'){
             big1 = 1;
             break;
         }
@@ -726,11 +737,11 @@ int dirtree(char dir_cur[], int depth, int first_depth){
     DIR *directory;
     directory = opendir(dir_cur);
     struct dirent *entity;
-    int dir_size = str_len(dir_cur);
-    while ((entity = readdir(directory)) != NULL){ 
+    int dir_size = strlen(dir_cur);
+    while ((entity = readdir(directory)) != NULL){
         char *ent_name = (entity->d_name);
-        if (((entity->d_name)[0] == '.' && str_len(ent_name) == 1) || (ent_name[0] == '.' && ent_name[1] == '.' && str_len(ent_name) == 2)) continue;
-        int ent_size = str_len(ent_name);
+        if (((entity->d_name)[0] == '.' && strlen(ent_name) == 1) || (ent_name[0] == '.' && ent_name[1] == '.' && str_len(ent_name) == 2)) continue;
+        int ent_size = strlen(ent_name);
         char next_dir[MAX];
         for (int i = 0; i < dir_size; i++){
             next_dir[i] = dir_cur[i];
@@ -908,570 +919,1075 @@ void armann(char arr[]){
     fclose(fileans);
 }
 
-int main(){
-    int arman = 0;
-    while (1){
-        char order[MAX];
-        scanf("%s", order);
-        if (arman == 0) {FILE *file = fopen("ans.txt", "w"); fclose(file);}
-        if (str_cmp(order, "insertstr")){
-            char file_address[MAX];//getting address of file
-            scanf(" --file ");
-            char letter;
-            scanf("%c", &letter);
-            if (letter == '"'){
-                inp_q(file_address);
-                getchar();
-            }
-            else{
-                inp(letter, file_address);
-            }
-            int check = check_exist(file_address);//checking if we have a file with this name or not
-            if (!check){
-                printf("We don't have a file with this address.\n");
-                continue;
-            }
-             //saving this state of file
-            char temp_matn[MAX];
-            if (arman == 0) {    
-                scanf("--str ");
-                scanf("%c", &letter);
-                if (letter == '"'){
-                    inp_q(temp_matn);
-                    getchar();
-                }
-                else{
-                    inp(letter, temp_matn);
-                }
-            }
-            else{
-                armann(temp_matn);
-                arman = 0;
-            }
-            char matn[MAX];
-            make_message(temp_matn, matn);
-            int ln = 0; int pos = 0;
-            scanf("--pos %d:%d", &ln, &pos);//getting line and pos
-            insert(file_address, matn, ln, pos);
-        }
-        else if (str_cmp(order, "cat")){
-            scanf(" --file ");
-            char file_address[MAX];
-            char letter;
-            scanf("%c", &letter);
-            char end;//checking for arman
-            if (letter == '"'){
-                inp_q(file_address);
-                scanf("%c", &end);
-            }
-            else{
-                end = inp(letter, file_address);
-            }
-            int check = check_exist(file_address);//checking if we have a file with this name or not
-            if (!check){
-                printf("We don't have a file with this address.\n");
-                continue;
-            }
-            cat(file_address);
-            if (end == '\n'){
-                print_ans();
-                arman = 0;
-            }
-            else{
-                scanf(" =D ");
-                arman = 1;
-            }
-        }
-        else if (str_cmp(order, "removestr")){
-            char file_address[MAX];//getting address of file
-            scanf(" --file ");
-            char letter;
-            scanf("%c", &letter);
-            if (letter == '"'){
-                inp_q(file_address);
-                getchar();
-            }
-            else{
-                inp(letter, file_address);
-            }
-            int check = check_exist(file_address);//checking if we have a file with this name or not
-            if (!check){
-                printf("We don't have a file with this address.\n");
-                continue;
-            }
-            int ln = 0; int pos = 0;
-            scanf("--pos %d:%d", &ln, &pos);//getting line and pos
-            scanf(" -size ");
-            int size;
-            scanf("%d", &size);
-            scanf(" -");
-            char dir;
-            scanf("%c", &dir);
-            rmv(file_address, ln, pos, size, dir);
-        }
-        else if(str_cmp(order, "copystr") || str_cmp(order, "cutstr")){
-            char file_address[MAX];//getting address of file
-            scanf(" --file ");
-            char letter;
-            scanf("%c", &letter);
-            if (letter == '"'){
-                inp_q(file_address);
-                getchar();
-            }
-            else{
-                inp(letter, file_address);
-            }
-            int check = check_exist(file_address);//checking if we have a file with this name or not
-            if (!check){
-                printf("We don't have a file with this address.\n");
-                continue;
-            }
-             //saving this state of file
-            int ln = 0; int pos = 0;
-            scanf("--pos %d:%d", &ln, &pos);//getting line and pos
-            scanf(" -size ");
-            int size;
-            scanf("%d", &size);
-            scanf(" -");
-            char dir;
-            scanf("%c", &dir);
-            if (str_cmp(order, "copystr")){
-                cpy(file_address, ln, pos, size, dir);
-            }
-            if (str_cmp(order, "cutstr")){
-                cut(file_address, ln, pos, size, dir);
-            }
-        }
-        else if(str_cmp(order, "pastestr")){
-            char file_address[MAX];//getting address of file
-            scanf(" --file ");
-            char letter;
-            scanf("%c", &letter);
-            if (letter == '"'){
-                inp_q(file_address);
-                getchar();
-            }
-            else{
-                inp(letter, file_address);
-            }
-            int check = check_exist(file_address);//checking if we have a file with this name or not
-            if (!check){
-                printf("We don't have a file with this address.\n");
-                continue;
-            }
-             //saving this state of file
-            int ln = 0; int pos = 0;
-            scanf("--pos %d:%d", &ln, &pos);//getting line and pos
-            ppaste(file_address, ln, pos);
-        }
-        else if(str_cmp(order, "grep")){
-            scanf(" -");
-            char option_c;
-            int option = 0;//what we give to our function for attributes we have
-            scanf(" %c", &option_c);
-            if (option_c == 'c'){
-                option = 1;
-                scanf(" --");
-            }
-            else if(option_c == 'l'){
-                option = 2;
-                scanf(" --");
-            }
-            scanf("str ");
-            char letter;
-            scanf("%c", &letter);
-            char target_temp[MAX];
-            if (letter == '"'){
-                inp_q(target_temp);
-                getchar();
-            }
-            else {
-                inp(letter, target_temp);
-            }
-            char target[MAX];
-            make_message(target_temp, target);//making what we are looking for
-            scanf("--files ");
-            int tedad = 0;//if option is 2, we need to save how many times we saw the target 
-            //inputting name of the files
-            char next = '`';
-            while (next != '\n'){
-                scanf("%c", &letter);
-                char file_address[MAX];
-                if (letter == '=') break;
-                if (letter == '"'){
-                    inp_q(file_address);
-                    scanf("%c", &next);
-                }
-                else{
-                    next = inp(letter, file_address);
-                }
-                int check = check_exist(file_address);//checking if we have a file with this name or not
-                if (!check){
-                    printf("We don't have a file with this address.\n");
-                    continue;
-                }
-                 //saving this state of file
-                //base on option, we will see what we should do
-                if (option == 0){
-                    grep(file_address, target, str_len(target), 0);
-                }
-                else if(option == 1){
-                    tedad += grep(file_address, target, str_len(target), 1);
-                }
-                else{
-                    tedad = grep(file_address, target, str_len(target), 2);
-                    if (tedad == 1){
-                        FILE *fileans = fopen("ans.txt", "a");
-                        fprintf(fileans, "%s\n", file_address);
-                        fclose(fileans);
-                    }
-                }
-            }
-            if (option == 1){
-                FILE *fileans = fopen("ans.txt", "w");
-                fprintf(fileans, "%d", tedad);
-                fclose(fileans);
-            }
-            if (next == '\n'){
+int fileSize(char file_name[]){
+    FILE *file = fopen(file_name, "r");
+    int ans = 0;
+    char line[MAX]; line[0] = '`';
+    while (line[0] != '\0'){
+        line[0] = '\0';
+        fgets(line, MAX, file);
+        if (line[0] != '\0') ans++;
+    }
+    fclose(file);
+    return ans;
+}
 
-                print_ans();
-                arman = 0;
-            }
-            else{
-                scanf("D ");
-                arman = 1;
-            }
-            
+int mmax(int a, int b){
+    if (a > b) return a;
+    else return b;
+}
+
+int min(int a, int b){
+    if (a < b) return a;
+    return b;
+}
+
+int line_len(char line[]){
+    int ans = strlen(line);
+
+}
+
+int lineSize(char file_name[], int lines[]){
+    FILE *file = fopen(file_name, "r");
+    int last_line = 0;
+    int index = 0;
+    char line[MAX]; line[0] = '`';
+    while (line[0] != '\0'){
+        line[0] = '\0';
+        fgets(line, MAX, file);
+        if (line[0] != '\0') {
+            lines[index++] = strlen(line);
         }
-        else if(str_cmp(order, "undo")){
-            scanf(" --file ");
-            char file_address[MAX];
-            char letter;
-            scanf("%c", &letter);
-            if (letter == '"'){
-                inp_q(file_address);
-                getchar();
-            }
-            else{
-                inp(letter, file_address);
-            }
-            int check = check_exist(file_address);//checking if we have a file with this name or not
-            if (!check){
-                printf("We don't have a file with this address.\n");
-                continue;
-            }
-             //saving this state of file
-            undo(file_address);
+        last_line = ftell(file);
+    }
+    fclose(file);
+    return fileSize(file_name);
+}
+
+int RLineSize(char file_name[], int lines[]){
+    FILE *file = fopen(file_name, "r");
+    int last_line = 0;
+    int index = 0;
+    char line[MAX]; line[0] = '`';
+    while (line[0] != '\0'){
+        line[0] = '\0';
+        fgets(line, MAX, file);
+        if (line[0] != '\0') {
+            lines[index++] = str_len(line);
         }
-        else if(str_cmp(order, "compare")){
-            getchar();
-            char file_f[MAX];
-            char file_s[MAX];
-            char letter;
-            scanf("%c", &letter);
-            if (letter == '"'){
-                inp_q(file_f);
-                getchar();
-            }
-            else{
-                inp(letter, file_f);
-            }
-            int check = check_exist(file_f);//checking if we have a file with this name or not
-            if (!check){
-                printf("We don't have a file with this address.\n");
-                continue;
-            }
-            save(file_f);//saving this state of file
-            scanf("%c", &letter);
-            char end;//checking for arman
-            if (letter == '"'){
-                inp_q(file_s);
-                scanf("%c", &end);
-            }
-            else{
-                end = inp(letter, file_s);
-            }
-            check = check_exist(file_s);//checking if we have a file with this name or not
-            if (!check){
-                printf("We don't have a file with this address.\n");
-                continue;
-            }
-            save(file_s);//saving this state of file
-            text_cmp(file_f, file_s);
-            if (end == '\n'){
-                print_ans();
-                arman = 0;
-            }
-            else{
-                scanf("D ");
-                arman = 1;
-            }
+        last_line = ftell(file);
+    }
+    fclose(file);
+    return fileSize(file_name);
+}
+
+void printstat(WINDOW *stat, WINDOW *command, char mode[]){
+    wclear(stat);
+    box(stat, 0, 0);
+    mvwprintw(stat, 1, 1, "%s", mode); wrefresh(stat);
+    wclear(command);
+    box(command, 0, 0);
+    wmove(command, 1, 1); wrefresh(command);
+}
+
+void printFile(WINDOW *filewin, char file_name[], int ln){
+    wclear(filewin);
+    box(filewin, 0, 0);
+    FILE *file = fopen(file_name, "r");
+    char line[MAX];
+    for (int i = 0; i < ln - 1; i++){
+        fgets(line, MAX, file);
+    }
+    line[0] = '\0';
+    wmove(filewin, 1, 0);
+    for (int i = 0; i < 18; i++){
+        fgets(line, MAX, file);
+        if (line[0] == '\0') break;
+        int a = strlen(line);
+        if (line[a - 2] == '\r' && line[a - 1] == '\n'){
+            if (line[a - 1] == '\n') line[a - 2] = '\n';
+            line[a - 1] = '\0';
         }
-        else if(str_cmp(order, "tree")){
-            int depth;
-            scanf("%d", &depth);
-            dirtree("root/", depth, depth);
-            char end;//checking for arman
-            scanf("%c", &end);
-            if (end == '\n'){
-                print_ans();
-                arman = 0;
+        // wprintw(filewin, "%d: %s", min(ln + i, mmax(1, fileSize(file_name) - 17) + i), line);
+        wprintw(filewin, "%d: %s", ln + i, line);
+        line[0] = '\0';
+    }
+    wrefresh(filewin);
+    fclose(file);
+}
+
+void inDeitel(char file1[], char file2[]){
+    FILE *file = fopen(file1, "r");
+    FILE *deitel = fopen(file2, "w");
+    char line[MAX];
+    line[0] = '`';
+    while (line[0] != '\0'){
+        line[0] = '\0';
+        fgets(line, MAX, file);
+        
+        if (line[0] != '\0') {
+            fprintf(deitel, "%s", line);
+            // for (int i = 0; i < str_len(line); i++){
+            //     fprintf(deitel, "%c", line[i]);
+            // }
+            // fprintf(deitel, "%c", "\n");
+        }
+    }
+    fclose(file);
+    fclose(deitel);
+}
+
+void StrToStr(char fst[], char sec[]){
+    int index = 0;
+    for (int i = 0; i < str_len(fst); i++){
+        if (fst[i] != '\r') sec[index++] = fst[i];
+    }
+    sec[index++] = '\0';
+}
+
+int posToLine(int place, int lines[]){
+    int index = 0;
+    long long int sum = lines[0] - 1;
+    while (place > sum){
+        index++;
+        sum += lines[index];
+    }
+    return index + 1;
+}
+
+int posToPos(int place, int lines[], int fst){
+    int ln = posToLine(place, lines);
+    int sum = 0;
+    for (int i = 0; i < ln - 1; i++){
+        sum += lines[i];
+    }
+    return place - sum - 1;
+}
+
+int numSize(int a){
+    int ans = 0;
+    while (a != 0){
+        a /= 10;
+        ans++;
+    }
+    return ans + 2;
+}
+
+int printFileFind(WINDOW *filenamewin, WINDOW *filewin, char target[][100],  int target_size, int chand/*-1: all*/, int star_list[], char message[], int sizes[], int fst){
+    // FILE *file = fopen("saving/root/temp.txt", "w"); fclose(file);
+    wclear(filewin); box(filewin, 0, 0);
+    inDeitel("deitel.txt", "temp.txt");
+    int deitel_results[MAX] = {0};
+    findd(target, target_size, "deitel.txt", star_list, -1, deitel_results);
+    int original_chand = chand;
+    // endwin();
+    // printf("%s\n", target[0]);
+
+    replace("temp.txt", target, target_size, "TTTTT", -1, star_list);
+    int stars[MAX] = {0};
+    int results[MAX] = {0};
+    int tedad = findd("TTTTT", 1, "temp.txt", stars, -1, results);
+    int lines[MAX] = {0}; lineSize("temp.txt", lines);
+    char extra[MAX];
+    int ln = posToLine(results[chand - 1], lines);
+    FILE *file = fopen("temp.txt", "r");
+    FILE *deitel = fopen("deitel.txt", "r");
+    for (int i = 0; i < ln - 1; i++){
+        fgets(extra, MAX, file);
+        fgets(extra, MAX, deitel);
+    }
+    // if (ln > 1) fseek(file, -1, SEEK_CUR);
+    // if (ln > 1) fseek(deitel, -1, SEEK_CUR);
+    char word[MAX];
+    char word2[MAX];
+    char next = '`';
+    int lineAmount = ln;
+    char deitelNext = '`';
+    mvwprintw(filewin, 1, 0, "%d: ", ln);
+    while (fscanf(file, "%c", &next) != EOF && lineAmount - ln + 1 < 18){
+        fscanf(deitel, "%c", &deitelNext);
+        if (next == '\n' || next == ' '){
+            while (next == '\n' || next == ' '){
+                if (next == '\n') lineAmount++;
+                wprintw(filewin, "%c", next);
+                if (next == '\n') wprintw(filewin, "%d: ", lineAmount);
+                fscanf(file, "%c", &next);
+                fscanf(deitel, "%c", &deitelNext);
+            }
+            // fseek(file, -1, SEEK_CUR);
+            // fseek(deitel, -1, SEEK_CUR);
+        }
+        // else if(next == ' '){
+        //     while (next == ' ' || next == '\n'){
+        //         if (next == '\n') lineAmount++;
+        //         wprintw(filewin, "%c", next);
+        //         if (next == '\n') wprintw(filewin, "%d: ", lineAmount);
+        //         fscanf(file, "%c", &next);
+        //         fscanf(deitel, "%c", &deitelNext);
+        //     }
+            // fseek(file, -1, SEEK_CUR);
+            // fseek(deitel, -1, SEEK_CUR);
+        // }
+        if (next != '\r') {
+            fseek(file, -1, SEEK_CUR);
+            fseek(deitel, -1, SEEK_CUR);
+            fscanf(file, "%s", word);
+            if (str_cmp(word, "TTTTT") == 0){
+                fscanf(deitel, "%s", word2);
+                wprintw(filewin, "%s", word2);
             }
             else{
-                scanf("D ");
-                arman = 1;
-            }
-        }
-        else if(str_cmp(order, "createfile")){
-            scanf(" --file ");
-            char file_address[MAX];
-            char letter;
-            scanf("%c", &letter);
-            if (letter == '"'){
-                inp_q(file_address);
-                getchar();
-            }
-            else{
-                inp(letter, file_address);
-            }
-            char addresses[MAX][100];
-            int t = dir_addresses(file_address, addresses);
-            for (int i = 0; i < t - 1; i++){
-                make_dir(addresses[i]);
-            }
-            int success = create_file(file_address);
-            if (success) printf("We made your file!\n");
-            else(printf("This file already exists.\n"));
-        }
-        else if(str_cmp(order, "find")){
-            char target[MAX];
-                char letter;
-            if (arman == 0) {    
-                scanf(" --str ");
-                scanf("%c", &letter);
-                if (letter == '"'){
-                    inp_q(target);
-                    getchar();
+                start_color();
+                init_pair(1, COLOR_BLACK, COLOR_GREEN);
+                wattron(filewin, COLOR_PAIR(1));
+                for (int k = 0; k < target_size; k++){
+                    fscanf(deitel, "%s", word2);
+                    wprintw(filewin, "%s", word2);
                 }
-                else{
-                    inp(letter, target);
-                }
+                // fseek(deitel, -1, SEEK_CUR);
+                wattroff(filewin, COLOR_PAIR(1));
             }
-            else{
-                armann(target);
-                arman = 0;
-                getchar();
-            }
-            char words_temp[MAX][100];//saving words for checking their * condition
-            int words_amount = split_space(target, words_temp);
-            int stars[MAX] = {0};
-            for (int i = 0; i < words_amount; i++){
-                stars[i] = star(words_temp[i]);
-            }
-            char target_final[MAX];
-            make_message_findd(target, target_final);
-            char words[MAX][100];
-            words_amount = split_space(target_final, words);
-            scanf("--file ");
-            scanf("%c", &letter);
-            char file_address[MAX];
-            int is_space = 0;
-            if (letter == '"'){
-                inp_q(file_address);
-                scanf("%c", &letter);
-            }
-            else{
-                letter = inp(letter, file_address);
-            }
-            int check = check_exist(file_address);//checking if we have a file with this name or not
-            if (!check){
-                printf("We don't have a file with this address.\n");
-                continue;
-            }
-             //saving this state of file
-            FILE *fileans = fopen("ans.txt", "w");//saving the output in a file
-            if (letter == '\n'){
-                int results[MAX];
-                int ans = findd(words, words_amount, file_address, stars, 1, results);
-                fprintf(fileans, "%d", ans);
-                fclose(fileans);
-                print_ans();
-                arman = 0;
-                continue;
-            }
-            else {
-                char end;
-                scanf("%c", &end);
-                if (end == '-') {
-                    int results[MAX];
-                    char option[40];
-                    scanf("%s", option);
-                    if (str_cmp(option, "count")){
-                        int ans = findd(words, words_amount, file_address, stars, -2, results);
-                        fprintf(fileans, "%d", ans);
+        }
+    }
+    wmove(filewin, 1, numSize(ln) + posToPos(deitel_results[original_chand - 1], sizes, fst) + 1);
+    wrefresh(filewin);
+    fclose(deitel);
+    fclose(file);
+    remove("temp.txt");
+    return numSize(ln) + posToPos(deitel_results[original_chand - 1] , sizes, fst) + 1;
+
+
+}
+
+int getNum(WINDOW *command){
+    char letter = wgetch(command);
+    int ans = 0;
+    int index = 0;
+    while (letter >= 48 && letter <= 57){
+        ans = ans * 10 + letter - 48;
+        letter = wgetch(command);
+    }
+    return ans;
+}
+
+int main(){
+    initscr();
+    start_color();
+    // noraw();
+    //making different windows
+    WINDOW *filewin = newwin(20, WIDTH, 0, 0);
+    box(filewin, 0, 0);
+    refresh(); wrefresh(filewin);
+    WINDOW *stat = newwin(3, 10, 20, 0);
+    box(stat, 0, 0);
+    WINDOW *fileNameWin = newwin(3, WIDTH - 10, 20, 10);
+    box(fileNameWin, 0, 0);
+    refresh(); wrefresh(stat); wrefresh(fileNameWin);
+    WINDOW *command = newwin(3, WIDTH, 23, 0);
+    box(command, 0, 0);
+    refresh(); wrefresh(command);
+    FILE *file = fopen("deitel.txt", "w");  fclose(file);
+    int mode = 0; // 0:NORMAL, 1:VISUAL, 2:INSNERT  
+
+    int whichLine = 1;
+    printFile(filewin, "deitel.txt", whichLine);
+    int cursorY = 1, cursorX = 3; wmove(filewin, cursorY, cursorX);wrefresh(filewin); 
+    int lines[MAX] = {0};
+    int tedad = lineSize("deitel.txt", lines);
+    int RLines[MAX] = {0}; RLineSize("deitel.txt", RLines);
+
+    char orgfile[MAX] = "deitel.txt";
+    char saveFileName[MAX] = "deitel.txt";
+    while (1){
+        printstat(stat, command, "NORMAL");
+        
+        if (mode == 0) {    
+            while (1){
+                cbreak();
+                char dir;
+                noecho();
+                dir = wgetch(command);
+                // scanw("%c", &dir);
+                // wprintw(command, "%c", dir); wrefresh(command);
+                if (dir == 'e'){
+                    if (!((whichLine == 1 && cursorY == 5) ||( whichLine == 2 && cursorY == 5))){
+                        if (cursorY > 4){ 
+                            cursorY--;
+                            cursorX = min(cursorX - numSize(whichLine + cursorY) + numSize(whichLine + cursorY - 1) , RLines[cursorY + whichLine - 2] + numSize(whichLine + cursorY - 1));
+                        }
+                        int happened = 0;
+                        if (cursorY == 4){
+                            if (whichLine > 1) happened = 1;
+                            if (whichLine > 1) whichLine--;
+                            printFile(filewin, "deitel.txt", whichLine);
+                            cursorX = min(cursorX - numSize(whichLine + cursorY) + numSize(whichLine + cursorY - 1) , RLines[cursorY + whichLine - 2] + numSize(whichLine + cursorY - 1));
+                            
+
+                        }
+                        if (cursorY <= 4){
+                            if (!happened  && cursorY > 1) {
+                                cursorY--; 
+                                cursorX = min(cursorX - numSize(whichLine + cursorY) + numSize(whichLine + cursorY - 1) , RLines[cursorY + whichLine - 2] + numSize(whichLine + cursorY - 1));
+                                
+                            }
+                        }
+                        if (whichLine < 1) whichLine = 1;
+                        
+                        wmove(filewin, cursorY, cursorX);
                     }
                     else{
-                        int at = 1;
-                        if (str_cmp(option, "at")) scanf(" %d", &at);
-                        scanf("%c", &letter);
-                        if (letter == ' '){
-                            scanf("-");
-                            char option2[40];
-                            scanf("%s", option2);
-                            scanf("%c", &letter);//checkig for arman
-                            if ((str_cmp(option, "all")) || (str_cmp(option2, "all"))){
-                                int tedad = findd_word(words, words_amount, file_address, stars, -1, results);
-                                for (int j = 0; j < tedad; j++){
-                                    fprintf(fileans, "%d", results[j]);
-                                    if (j < tedad - 1) fprintf(fileans, "\n", results[j]);
+                        if (cursorY > 1) {
+                            cursorY--;
+                            cursorX = min(cursorX - numSize(whichLine + cursorY) + numSize(whichLine + cursorY - 1) , RLines[cursorY + whichLine - 2] + numSize(whichLine + cursorY - 1));
+                        }
+                        wmove(filewin, cursorY, cursorX);
+                    }
+                }
+                if (dir == 'd'){
+                    if (!(cursorY >= 15 && whichLine >= fileSize("deitel.txt") - 17) || fileSize("deitel.txt") < 18) {
+                            int happened = 0;
+                            if (cursorY + whichLine == fileSize("deitel.txt") - 3) happened = 1;
+                            if (cursorY < 16 && cursorY + whichLine < fileSize("deitel.txt") || (fileSize("deitel.txt") < 18 && cursorY + whichLine - 1 < fileSize("deitel.txt"))) cursorY++;
+                            if (cursorY >= 16) {
+                                if (fileSize("deitel.txt") >= 18) whichLine++;
+                                printFile(filewin, "deitel.txt", whichLine);
+                                if (whichLine < fileSize("deitel.txt") - 16 && fileSize("deitel.txt") > 17) {
+                                    cursorY--;
+                                    happened = 1;}
+                            }
+                            if (whichLine > mmax(1, fileSize("deitel.txt") - 17)) whichLine =mmax(1,  fileSize("deitel.txt") - 17);
+                            cursorX = min(cursorX - numSize(whichLine + cursorY - 2) + numSize(whichLine + cursorY - 1) , RLines[cursorY + whichLine - 2] + numSize(whichLine + cursorY - 1));
+                            // if (cursorY >= 16 && cursorY < 18 && whichLine == fileSize("deitel.txt") - 17 && !happened) {cursorY++;}
+                            wmove(filewin, cursorY, cursorX);
+                        }
+                        else{
+                            if ((cursorY < 18 && (cursorY + whichLine) <= fileSize("deitel.txt"))) cursorY++;
+                            cursorX = min(cursorX - numSize(whichLine + cursorY - 2) + numSize(whichLine + cursorY - 1) , RLines[cursorY + whichLine - 2] + numSize(whichLine + cursorY - 1));
+                            wmove(filewin, cursorY, cursorX);
+                        }
+                }
+                if (dir == 's'){
+                    if (cursorX > numSize(whichLine + cursorY - 1) ) cursorX--;
+                    wmove(filewin, cursorY, cursorX);
+                }
+                if (dir == 'f'){
+                    if (cursorX < RLines[cursorY + whichLine - 2] + numSize(whichLine + cursorY - 1)) cursorX++;
+                    wmove(filewin, cursorY, cursorX);
+                }
+                wrefresh(filewin);
+                
+                if (dir == 'i'){
+                    mode = 2;
+                    break;
+                }
+
+                if (dir == 'v') {
+                    printstat(stat, command, "VISUAL"); mode = 1;
+                    break;
+                }
+                if (dir == 'p'){
+                    int current = 0;
+                    int currentPos = cursorX - 3;
+                    for (int i = 0; i < whichLine + cursorY - 2; i++){
+                        current += lines[i];
+                    }
+                    current += currentPos; 
+                    ppaste("deitel.txt", whichLine + cursorY - 1, cursorX - 3);
+                    printFile(filewin, "deitel.txt", whichLine);
+                    lineSize("deitel.txt", lines); RLineSize("deitel.txt",  RLines);
+                    if (orgfile[strlen(orgfile) - 1] != '+') strncat(orgfile, " +", 2);
+                    if (!str_cmp("deitel.txt", saveFileName)) {wclear(fileNameWin); box(fileNameWin, 0, 0); mvwprintw(fileNameWin, 1, 1, "%s", orgfile); wrefresh(fileNameWin);}
+                }
+                if (dir == 'u'){
+                    undo("deitel.txt");
+                    lineSize("deitel.txt", lines); RLineSize("deitel.txt",  RLines);
+                    printFile(filewin, "deitel.txt", whichLine);
+                }
+                else if(dir == '='){
+                    close_pair("deitel.txt");
+                    lineSize("deitel.txt", lines); RLineSize("deitel.txt",  RLines);
+                    printFile(filewin, "deitel.txt", whichLine);
+                }
+
+                if (dir == ':'){
+                    wrefresh(filewin); wclear(command); box(command, 0, 0); echo(); wmove(command, 1, 1); wprintw(command, ":"); wrefresh(command);
+                    char a = wgetch(command);
+                    char input[MAX] = "";
+                    char file_address[MAX] = "";
+                    inp(a, input, command);
+                    if (str_cmp(input, "open")){
+                        a = wgetch(command);
+                        if (a == '"'){
+                            inp_q(file_address, command);
+                            wgetch(command);
+                        }
+                        else{
+                            inp(a, file_address, command);
+                        }
+                        if (check_exist(file_address) != 0){
+                            if (str_cmp(saveFileName, "deitel.txt") == 0){
+                                inDeitel("deitel.txt", saveFileName);
+                            }
+                            inDeitel(file_address, "deitel.txt");
+                            printFile(filewin, "deitel.txt", 1);
+                            lineSize("deitel.txt", lines); RLineSize("deitel.txt",  RLines);
+                            StrToStr(file_address, orgfile);
+                            StrToStr(file_address, saveFileName);
+                            wclear(fileNameWin); box(fileNameWin, 0, 0); mvwprintw(fileNameWin, 1, 1, "%s", saveFileName); wrefresh(fileNameWin);
+                            cursorX = 3; cursorY = 1;
+                        }
+                        else{
+                            wclear(command); box(command, 0, 0); mvwprintw(command, 1, 1, "There is no file with this name. Press any key to continue..."); wrefresh(command); wgetch(command);
+                        }
+                    }
+                    else if (str_cmp(input, "saveas")){
+                        a = wgetch(command);
+                        if (a == '"'){
+                            inp_q(file_address, command);
+                            wgetch(command);
+                        }
+                        else{
+                            inp(a, file_address, command);
+                        }
+                        StrToStr(file_address, orgfile);
+                        StrToStr(file_address, saveFileName);
+                        wclear(fileNameWin); box(fileNameWin, 0, 0); mvwprintw(fileNameWin, 1, 1, "%s", saveFileName); wrefresh(fileNameWin);
+                        inDeitel("deitel.txt", file_address);
+                    }
+
+                    else if (str_cmp(input, "save")){
+                        if (str_cmp(orgfile, "deitel.txt") == 0) {
+                            inDeitel("deitel.txt", saveFileName);
+                            if (!str_cmp(saveFileName, "deitel.txt")) wclear(fileNameWin); box(fileNameWin, 0, 0); mvwprintw(fileNameWin, 1, 1, "%s", saveFileName); wrefresh(fileNameWin);
+                        }
+                        else{
+                            mvwprintw(command,1, 1, "Your file doesn't have a name. Use saveas. Please enter a button to continue."); wrefresh(command);
+                            wgetch(command);
+                            wclear(command); box(command, 0, 0); wrefresh(command);
+                        }
+                    }
+
+                    else if (str_cmp(input, "replace")){
+                        char extra[MAX];
+                        inp("t", extra, command);
+                        char str1[MAX];
+                        char str2[MAX];
+                        char letter = wgetch(command);
+                        if (letter == '"'){
+                            inp_q(str1, command);
+                            wgetch(command);
+                        }
+                        else{
+                            inp(letter, str1, command);
+                        }
+                        inp("t", extra, command);
+                        letter = wgetch(command);
+                        char end;
+                        if (letter == '"'){
+                            inp_q(str2, command);
+                            end = wgetch(command);
+                        }
+                        else{
+                            end = inp(letter, str2, command);
+                        }
+                        int chand = 1;
+                        char file_name[MAX] = "deitel.txt";
+                        char option[50];
+                        if (end !='\n'){
+                            letter = wgetch(command);
+                            if (letter == '"'){
+                                inp_q(option, command);
+                                wgetch(command);
+                            }
+                            else{
+                                inp(letter, option, command);
+                            }
+                            if (str_cmp(option, "--file")){
+                                letter = wgetch(command);
+                                if (letter == '"'){
+                                    inp_q(file_name, command);
+                                    end = wgetch(command);
+                                }
+                                else{
+                                    end = inp(letter, file_name, command);
+                                }
+                                if (end != '\n'){ 
+                                    letter = wgetch(command);
+                                    if (letter == '"'){
+                                        inp_q(option, command);
+                                        end = wgetch(command);
+                                    }
+                                    else{
+                                        end = inp(letter, option, command);
+                                    }   
+                                    if (str_cmp(option, "-at")){
+                                        chand = getNum(command);
+                                    }
+                                    else{
+                                        chand = -1;
+                                    }
                                 }
                             }
-                            if ((str_cmp(option, "at")) || (str_cmp(option2, "at"))){
-                                if (str_cmp(option2, "at")) scanf(" %d", &at);
-                                int ans = findd_word(words, words_amount, file_address, stars, at, results);
-                                fprintf(fileans, "%d", ans);
+                            else{ 
+                                if (str_cmp(option, "-at")){
+                                    chand = getNum(command);
+                                }
+                                else{
+                                    chand = -1;
+                                }
+                            }
+                        
+                        }
+                        //hameye voroodi haro gereftim...
+                        int stars[MAX];
+                        char target[MAX][100];
+                        char target2[MAX][100];
+                        int target_size = split_space(str1, target);
+                        for (int i = 0; i < target_size; i++){
+                            stars[i] = star(target[i]);
+                        }
+                        char str1Final[MAX];
+                        make_message_findd(str1, str1Final);
+                        target_size = split_space(str1Final, target2);
+                        int results[MAX] = {0};
+                        int tedad = findd(target2, target_size, "deitel.txt", stars, -1, results);
+                        if (str_cmp(file_name, "deitel.txt")){
+                            if (tedad > 0){
+                                replace("deitel.txt", target2, target_size, str2, chand, stars);
+                                int ln;
+                                int pos;
+                                if (chand > 0) {ln = posToLine(results[chand - 1], lines);}
+                                else ln = posToLine(results[0], lines);
+                                whichLine = ln;
+                                cursorY = 1;
+                                if (chand > 0) pos = posToPos(results[chand - 1], lines, whichLine + cursorY - 1);
+                                else pos = posToPos(results[0], lines, whichLine + cursorY - 1);
+                                cursorX = numSize(whichLine) + pos;
+                                printFile(filewin, "deitel.txt", whichLine);
+                                if (orgfile[strlen(orgfile) - 1] != '+') strncat(orgfile, " +", 2);
+                                if (!str_cmp(saveFileName, "deitel.txt")) {wclear(fileNameWin); box(fileNameWin, 0, 0); mvwprintw(fileNameWin, 1, 1, "%s", orgfile); wrefresh(fileNameWin);}
+                            }
+                            else{
+                                wclear(command); box(command, 0, 0); mvwprintw(command, 1, 1, "There was no match. Press any key to continue...");wrefresh(command); wgetch(command);
+                                wclear(command); box(command, 0, 0); wrefresh(command);
                             }
                         }
                         else{
-                            if (str_cmp(option, "all")){
-                                int tedad = findd(words, words_amount, file_address, stars, -1, results);
-                                for (int j = 0; j < tedad; j++){
-                                    fprintf(fileans, "%d", results[j]);
-                                    if (j < tedad - 1) fprintf(fileans, "\n", results[j]);
-                                }
-                            }
-                            else{
-                                int ans = findd(words, words_amount, file_address, stars, at, results);
-                                fprintf(fileans, "%d", ans);
-                            }
+                            replace(file_name, target2, target_size, str2, chand, stars);
                         }
                     }
-                    if (letter == '\n'){
-                        fclose(fileans);
-                        print_ans();
-                        arman = 0;
-                        continue;
+                    else if (str_cmp(input, "tree")){
+                        int depth;
+                        depth = getNum(command);
+                        if (depth >= 0) {
+                            inDeitel("deitel.txt", saveFileName);
+                            wclear(fileNameWin); box(fileNameWin, 0, 0); wrefresh(fileNameWin);
+                            wclear(filewin); box(filewin, 0, 0); wmove(filewin, 1, 0); wrefresh(filewin);
+                            FILE *file = fopen("ans.txt", "w"); fclose(file);
+                            StrToStr("deitel.txt", orgfile);
+                            StrToStr("deitel.txt", saveFileName);
+                            dirtree("root/", depth, depth);
+                            inDeitel("ans.txt", "deitel.txt");
+                            printFile(filewin, "deitel.txt", 1);
+                            lineSize("deitel.txt", lines); RLineSize("deitel.txt", RLines);
+                            cursorY = 1;
+                            cursorX = 3;
+                            
+                        }
+                    }
+                    
+                    else if (str_cmp(input, "removestr")){
+                        char file_address[MAX] = "deitel.txt";//getting address of file
+                        char letter;
+                        letter = wgetch(command);
+                        char extra[MAX];
+                        inp(letter, extra, command);
+                        // scanf("--file ");
+                        int thisFile = 1;
+                        int ln = 0; int pos = 0;
+                        if (str_cmp(extra, "--file")){
+                            thisFile = 0;
+                            letter = wgetch(command);
+                            if (letter == '"'){
+                                inp_q(file_address, command);
+                                wgetch(command);
+                            }
+                            else{
+                                inp(letter, file_address, command);
+                            }
+                            inp("t", extra, command);
+                            ln = getNum(command);
+                            pos = getNum(command);
+                        }
+                        else{
+                            ln = getNum(command);
+                            pos = getNum(command);
+                        }
+                        int check = check_exist(file_address);//checking if we have a file with this name or not
+                        if (!check){
+                            wclear(command); box(command, 0, 0); mvwprintw(command, 1, 1,"There was no file with this name. Press any key to continue...");wrefresh(command);
+                            wgetch(command);
+                        }
+                        else{
+                            inp("t", extra, command);
+                            int size;
+                            size = getNum(command);
+                            wgetch(command);
+                            char dir = wgetch(command);
+                            if (!thisFile && !strcmp("deitel.txt", saveFileName)) rmv(file_address, ln, pos, size, dir);
+                            else{
+                                // if (!thisFile && str_cmp(file_address, saveFileName)) rmv(file_address, ln, pos, size, dir);
+                                rmv("deitel.txt", ln, pos, size, dir);
+                                printFile(filewin, "deitel.txt", whichLine);
+                                lineSize("deitel.txt", lines); RLineSize("deitel.txt", RLines);
+                                if (!str_cmp("deitel.txt", saveFileName) && orgfile[strlen(orgfile) - 1] != '+') strncat(orgfile, " +", 2);
+                                if (!str_cmp("deitel.txt", saveFileName)){
+                                    wclear(fileNameWin); box(fileNameWin, 0, 0); mvwprintw(fileNameWin, 1, 1, "%s", orgfile); wrefresh(fileNameWin);
+                                }
+                            }
+
+                        }
+                    }
+
+                    else if (str_cmp(input, "copystr")){
+                        char file_address[MAX] = "deitel.txt";//getting address of file
+                        char letter;
+                        letter = wgetch(command);
+                        char extra[MAX];
+                        inp(letter, extra, command);
+                        // scanf("--file ");
+                        int thisFile = 1;
+                        int ln = 0; int pos = 0;
+                        if (str_cmp(extra, "--file")){
+                            thisFile = 0;
+                            letter = wgetch(command);
+                            if (letter == '"'){
+                                inp_q(file_address, command);
+                                wgetch(command);
+                            }
+                            else{
+                                inp(letter, file_address, command);
+                            }
+                            inp("t", extra, command);
+                            ln = getNum(command);
+                            pos = getNum(command);
+                        }
+                        else{
+                            ln = getNum(command);
+                            pos = getNum(command);
+                        }
+                        int check = check_exist(file_address);//checking if we have a file with this name or not
+                        if (!check){
+                            wclear(command); box(command, 0, 0); mvwprintw(command, 1, 1,"There was no file with this name. Press any key to continue...");wrefresh(command);
+                            wgetch(command);
+                        }
+                        else{
+                            inp("t", extra, command);
+                            int size;
+                            size = getNum(command);
+                            wgetch(command);
+                            char dir = wgetch(command);
+                            cpy(file_address, ln, pos, size, dir);
+                        }
+                    }
+
+                    else if (str_cmp(input, "cutstr")){
+                        char file_address[MAX] = "deitel.txt";//getting address of file
+                        char letter;
+                        letter = wgetch(command);
+                        char extra[MAX];
+                        inp(letter, extra, command);
+                        // scanf("--file ");
+                        int thisFile = 1;
+                        int ln = 0; int pos = 0;
+                        if (str_cmp(extra, "--file")){
+                            thisFile = 0;
+                            letter = wgetch(command);
+                            if (letter == '"'){
+                                inp_q(file_address, command);
+                                wgetch(command);
+                            }
+                            else{
+                                inp(letter, file_address, command);
+                            }
+                            inp("t", extra, command);
+                            ln = getNum(command);
+                            pos = getNum(command);
+                        }
+                        else{
+                            ln = getNum(command);
+                            pos = getNum(command);
+                        }
+                        int check = check_exist(file_address);//checking if we have a file with this name or not
+                        if (!check){
+                            wclear(command); box(command, 0, 0); mvwprintw(command, 1, 1,"There was no file with this name. Press any key to continue...");wrefresh(command);
+                            wgetch(command);
+                        }
+                        else{
+                            inp("t", extra, command);
+                            int size;
+                            size = getNum(command);
+                            wgetch(command);
+                            char dir = wgetch(command);
+                            cpy(file_address, ln, pos, size, dir);
+                            if (!thisFile && !strcmp("deitel.txt", saveFileName)) rmv(file_address, ln, pos, size, dir);
+                            else{
+                                // if (!thisFile && str_cmp(file_address, saveFileName)) rmv(file_address, ln, pos, size, dir);
+                                rmv("deitel.txt", ln, pos, size, dir);
+                                printFile(filewin, "deitel.txt", whichLine);
+                                lineSize("deitel.txt", lines); RLineSize("deitel.txt", RLines);
+                                if (!str_cmp("deitel.txt", saveFileName) && orgfile[strlen(orgfile) - 1] != '+') strncat(orgfile, " +", 2);
+                                if (!str_cmp("deitel.txt", saveFileName)){
+                                    wclear(fileNameWin); box(fileNameWin, 0, 0); mvwprintw(fileNameWin, 1, 1, "%s", orgfile); wrefresh(fileNameWin);
+                                }
+                            }
+
+                        }
+                    }
+                    
+                    else if (str_cmp(input, "insertstr")){
+                        char file_address[MAX] = "deitel.txt";//getting address of file
+                        char letter;
+                        letter = wgetch(command);
+                        char extra[MAX];
+                        char strt[MAX];
+                        char str[MAX];
+                        inp(letter, extra, command);
+                        // scanf("--file ");
+                        int thisFile = 1;
+                        int ln = 0; int pos = 0;
+                        if (str_cmp(extra, "--file")){
+                            thisFile = 0;
+                            letter = wgetch(command);
+                            if (letter == '"'){
+                                inp_q(file_address, command);
+                                wgetch(command);
+                            }
+                            else{
+                                inp(letter, file_address, command);
+                            }
+                            inp("t", extra, command);
+                            letter = wgetch(command);
+                            if (letter == '"'){
+                                inp_q(strt, command);
+                                wgetch(command);
+                            }
+                            else{
+                                inp(letter, strt, command);
+                            }
+                            inp("t", extra, command);
+                            ln = getNum(command);
+                            pos = getNum(command);
+                        }
+                        else{
+                            letter = wgetch(command);
+                            if (letter == '"'){
+                                inp_q(strt, command);
+                                wgetch(command);
+                            }
+                            else{
+                                inp(letter, strt, command);
+                            }
+                            inp("t", extra, command);
+                            ln = getNum(command);
+                            pos = getNum(command);
+                        }
+                        make_message(strt, str);
+                        int check = check_exist(file_address);//checking if we have a file with this name or not
+                        if (!check){
+                            wclear(command); box(command, 0, 0); mvwprintw(command, 1, 1,"There was no file with this name. Press any key to continue...");wrefresh(command);
+                            wgetch(command);
+                        }
+                        else{
+                            if (!thisFile && !strcmp("deitel.txt", saveFileName)) {
+                                insert(file_address, str, ln, pos);
+                            }
+                            else{
+                                insert("deitel.txt", str, ln, pos);
+                                printFile(filewin, "deitel.txt", whichLine);
+                                lineSize("deitel.txt", lines); RLineSize("deitel.txt", RLines);
+                                if (!str_cmp("deitel.txt", saveFileName) && orgfile[strlen(orgfile) - 1] != '+') strncat(orgfile, " +", 2);
+                                if (!str_cmp("deitel.txt", saveFileName)){
+                                    wclear(fileNameWin); box(fileNameWin, 0, 0); mvwprintw(fileNameWin, 1, 1, "%s", orgfile); wrefresh(fileNameWin);
+                                }
+                            }
+
+                        }
+                    }
+                    
+                    else if (str_cmp(input, "createfile")){
+                        char extra[MAX]; inp("t", extra, command);
+                        char file_address[MAX];
+                        char letter = wgetch(command);
+                        if (letter == '"'){
+                            inp_q(file_address, command);
+                            wgetch(command);
+                        }
+                        else{
+                            inp(letter, file_address, command);
+                        }
+                        char addresses[MAX][100];
+                        int t = dir_addresses(file_address, addresses);
+                        for (int i = 0; i < t - 1; i++){
+                            make_dir(addresses[i]);
+                        }
+                        int success = create_file(file_address);
+                        if (success) {
+                            wclear(command); box(command, 0, 0); mvwprintw(command, 1, 1,"We made your file!. Press any key to continue...");
+                            wgetch(command);
+                            wclear(command); box(command, 0, 0);
+                        }
+
+                        else{
+                            wclear(command); box(command, 0, 0); mvwprintw(command, 1, 1,"This file already exists. Press any key to continue...");
+                            wgetch(command);
+                            wclear(command); box(command, 0, 0);
+                        }
+                    }
+                                
+                    else{
+                        wclear(command); box(command, 0, 0); mvwprintw(command, 1, 1, "Invalid input. Press any key to continue..."); wrefresh(command); wgetch(command);
+                        wclear(command); box(command, 0, 0); wrefresh(command);
+                    }
+                    
+                    wclear(command); box(command, 0, 0); wrefresh(command);
+                    noecho();
+
+                }
+                else if (dir == '/'){
+                    echo();
+                    wclear(command); box(command, 0, 0); mvwprintw(command, 1, 1, "/"); wrefresh(command);
+                    char input[MAX];
+                    char letter = wgetch(command);
+                    if (letter == '"'){
+                        inp_q(input, command);
+                        wgetch(command);
                     }
                     else{
-                        scanf("D ");
-                        arman = 1;
+                        inp(letter, input, command);
                     }
-                }
-                else{
-                    scanf("D ");
-                    arman = 1;
-                }
-            }
-            fclose(fileans);
-            
-        }
-        else if(str_cmp(order, "auto-indent")){
-            scanf(" ");
-            char letter;
-            scanf("%c", &letter);
-            char file_address[MAX];
-            if (letter == '"'){
-                inp_q(file_address);
-                getchar();
-            }
-            else{
-                inp(letter, file_address);
-            }
-            int check = check_exist(file_address);//checking if we have a file with this name or not
-            if (!check){
-                printf("We don't have a file with this address.\n");
-                continue;
-            }
-             //saving this state of file
-            close_pair(file_address);
-        }
-        else if(str_cmp(order, "replace")){
-            scanf(" --str1 ");
-            char str1[MAX];
-            char letter; scanf("%c", &letter);
-            if (letter == '"'){
-                inp_q(str1);
-                getchar();
-            }
-            else{
-                inp(letter, str1);
-            }
-            
-            char str2[MAX];
-            if (arman == 0){    
-                scanf("--str2 ");
-                scanf("%c", &letter);
-                if (letter == '"'){
-                    inp_q(str2);
-                    getchar();
-                }
-                else{
-                    inp(letter, str2);
-                }
-            }
-            else{
-                arman = 0;
-                armann(str2);
-            }
-            char words_temp[MAX][100];//saving words for checking their * condition
-            int words_amount = split_space(str1, words_temp);
-            int stars[MAX] = {0};
-            for (int i = 0; i < words_amount; i++){
-                stars[i] = star(words_temp[i]);
-            }
+                    wclear(command); box(command, 0, 0); wrefresh(command);
+                    int stars[MAX];
+                    int results[MAX] = {0};
+                    char words_temp[MAX][100];
+                    int tedad = split_space(input, words_temp);
+                    for (int i = 0; i < tedad; i++){
+                        stars[i] = star(words_temp[i]);
+                    }
+                    char line[MAX];
+                    make_message_findd(input, line);
+                    char words[MAX][MAX];
+                    tedad = split_space(line, words);
+                    int answerAmount = findd(words, tedad, "deitel.txt", stars, -1, results);
+                    noecho();
+                    if (answerAmount > 0){
+                        int chand = 1;
+                        printFileFind(fileNameWin, filewin,  words, tedad, chand, stars, line, lines, whichLine + cursorY - 1);
+                        wclear(command); box(command, 0, 0); mvwprintw(command, 1, 1, "Press 'n' for next match or press anything else to teminate find..."); wrefresh(command);
+                        char next = wgetch(command);
+                        wclear(command); box(command, 0, 0); wrefresh(command);
+                        while (next == 'n'){
+                            // chand = (chand + 1) % answerAmount + 1;
+                            chand++;
+                            if (chand == answerAmount + 1) chand = 1;
+                            cursorX = printFileFind(fileNameWin, filewin, words, tedad, chand, stars, line, lines, whichLine + cursorY - 1);
+                            wclear(command); box(command, 0, 0); mvwprintw(command, 1, 1, "Press 'n' for next match or press anything else to teminate find..."); wrefresh(command);
+                            next = wgetch(command);
+                            wclear(command); box(command, 0, 0); wrefresh(command);
+                        }
+                        printFile(filewin, "deitel.txt", posToLine(results[chand - 1], lines));
+                        whichLine = posToLine(results[chand - 1], lines);
+                        // lineSize("deitel.txt", lines); RLineSize("deitel.txt", RLines);
+                        cursorY = 1;
+                        wmove(filewin, cursorY, cursorX); wrefresh(filewin);
+                    }
+                    else {
+                        wclear(command); box(command, 0, 0); mvwprintw(command, 1, 1, "There was no match. Press any key to continue..."); wrefresh(command); wgetch(command);
+                        wclear(command); box(command, 0, 0); wrefresh(command);
+                    }
+                    
 
-            char target_final[MAX];//eliminating extra * and /
-            make_message_findd(str1, target_final);
-            char words[MAX][100];
-            words_amount = split_space(target_final, words);
+                }
+                else if (dir == '`'){
+                    endwin();
+                    return 0;
+                }
+                wmove(filewin, cursorY, cursorX); wrefresh(filewin);
+                // attroff(A_INVIS);
+                if (dir == 126) break;
+            }
+        }
+        //VISUAL    
+        wrefresh(filewin);
+        if (mode == 1){
+            int current = 0;
+            int currentPos = cursorX - numSize(whichLine + cursorY - 1);
+            for (int i = 0; i < whichLine + cursorY - 2; i++){
+                current += lines[i];
+            }
+            current += currentPos; 
+                while (1){
+                    if (mode == 1){
+                        char dir;
+                        dir = getch();
 
-            char new[MAX];
-            make_message(str2, new);    
-            scanf("--file ");
-            char file_address[MAX];
-            scanf("%c", &letter);
-            char end;//checking if user want to use an option
-            if (letter == '"'){
-                inp_q(file_address);
-                scanf("%c", &end);
-            }
-            else{
-                end = inp(letter, file_address);
-            }
-            int check = check_exist(file_address);//checking if we have a file with this name or not
-            if (!check){
-                printf("We don't have a file with this address.\n");
-                continue;
-            }
-             //saving this state of file
-            if (end == '\n'){
-                int success = replace(file_address, words, words_amount, new, 1, stars);
-                if (!success){
-                    printf("We couldn't find any match.\n");
-                }
-            }
-            else{
-                char option[30];
-                scanf("-%s", option);
-                if (str_cmp(option, "at")){
-                    int chand = 0;
-                    scanf("%d", &chand);
-                    int success = replace(file_address, words, words_amount, new, chand, stars);
-                    if (!success){
-                        printf("We couldn't find any match.\n");
+
+
+                        if (dir == 'e'){
+                        if (!((whichLine == 1 && cursorY == 5) ||( whichLine == 2 && cursorY == 5))){
+                            if (cursorY > 4){ 
+                                cursorY--;
+                                cursorX = min(cursorX - numSize(whichLine + cursorY) + numSize(whichLine + cursorY - 1) , RLines[cursorY + whichLine - 2] + numSize(whichLine + cursorY - 1));
+                            }
+                            int happened = 0;
+                            if (cursorY == 4){
+                                if (whichLine > 1) happened = 1;
+                                if (whichLine > 1) whichLine--;
+                                printFile(filewin, "deitel.txt", whichLine);
+                                cursorX = min(cursorX - numSize(whichLine + cursorY) + numSize(whichLine + cursorY - 1) , RLines[cursorY + whichLine - 2] + numSize(whichLine + cursorY - 1));
+                                
+
+                                }
+                                if (cursorY <= 4){
+                                    if (!happened  && cursorY > 1) {
+                                        cursorY--; 
+                                        cursorX = min(cursorX - numSize(whichLine + cursorY) + numSize(whichLine + cursorY - 1) , RLines[cursorY + whichLine - 2] + numSize(whichLine + cursorY - 1));
+                                        
+                                    }
+                                }
+                                if (whichLine < 1) whichLine = 1;
+                                
+                                wmove(filewin, cursorY, cursorX);
+                            }
+                            else{
+                                if (cursorY > 1) {
+                                    cursorY--;
+                                    cursorX = min(cursorX - numSize(whichLine + cursorY) + numSize(whichLine + cursorY - 1) , RLines[cursorY + whichLine - 2] + numSize(whichLine + cursorY - 1));
+                                }
+                                wmove(filewin, cursorY, cursorX);
+                            }
+                        }
+
+
+
+                    if (dir == 'd'){
+                        if (!(cursorY >= 15 && whichLine >= fileSize("deitel.txt") - 17) || fileSize("deitel.txt") < 18) {
+                            int happened = 0;
+                            if (cursorY + whichLine == fileSize("deitel.txt") - 3) happened = 1;
+                            if (cursorY < 16 && cursorY + whichLine < fileSize("deitel.txt") || (fileSize("deitel.txt") < 18 && cursorY + whichLine - 1 < fileSize("deitel.txt"))) cursorY++;
+                            if (cursorY >= 16) {
+                                if (fileSize("deitel.txt") >= 18) whichLine++;
+                                printFile(filewin, "deitel.txt", whichLine);
+                                if (whichLine < fileSize("deitel.txt") - 16 && fileSize("deitel.txt") > 17) {
+                                    cursorY--;
+                                    happened = 1;}
+                            }
+                            if (whichLine > mmax(1, fileSize("deitel.txt") - 17)) whichLine =mmax(1,  fileSize("deitel.txt") - 17);
+                            cursorX = min(cursorX - numSize(whichLine + cursorY - 2) + numSize(whichLine + cursorY - 1) , RLines[cursorY + whichLine - 2] + numSize(whichLine + cursorY - 1));
+                            // if (cursorY >= 16 && cursorY < 18 && whichLine == fileSize("deitel.txt") - 17 && !happened) {cursorY++;}
+                            wmove(filewin, cursorY, cursorX);
+                        }
+                        else{
+                            if ((cursorY < 18 && (cursorY + whichLine) <= fileSize("deitel.txt"))) cursorY++;
+                            cursorX = min(cursorX - numSize(whichLine + cursorY - 2) + numSize(whichLine + cursorY - 1) , RLines[cursorY + whichLine - 2] + numSize(whichLine + cursorY - 1));
+                            wmove(filewin, cursorY, cursorX);
+                        }
                     }
-                }
-                else{
-                    int success = replace(file_address, words, words_amount, new, -1, stars);
-                    if (!success){
-                        printf("We couldn't find any match.\n");
+                    if (dir == 's'){
+                        if (cursorX > numSize(whichLine + cursorY - 1) ) cursorX--;
+                        wmove(filewin, cursorY, cursorX);
                     }
+                    if (dir == 'f'){
+                        if (cursorX < RLines[cursorY + whichLine - 2] + numSize(whichLine + cursorY - 1)) cursorX++;
+                        wmove(filewin, cursorY, cursorX);
+                    }
+                    if (dir == 'h' || dir == 'k' || dir == 'c'){
+                        int final = 0;
+                        int currentPos = cursorX - numSize(whichLine + cursorY - 1);
+                        for (int i = 0; i < whichLine + cursorY - 2; i++){
+                            final += lines[i];
+                        }
+                        final += currentPos;
+                        mode = 0;
+                        // wclear(fileNameWin); mvwprintw(fileNameWin, 1, 1, "start: %d end: %d", current, final); wrefresh(fileNameWin); wgetch(fileNameWin);
+                        // break;
+                        int start = min(final, current);
+                        int end = mmax(final, current);
+                        if (dir == 'h'){
+                            rmv("deitel.txt", posToLine(start, lines), posToPos(start, lines, whichLine + cursorY - 1), end - start, 'f');
+                            printFile(filewin, "deitel.txt", whichLine);
+                            lineSize("deitel.txt", lines); RLineSize("deitel.txt",  RLines);
+                            if (orgfile[strlen(orgfile) - 1] != '+') strncat(orgfile, " +", 2);
+                            if (!str_cmp(saveFileName, "deitel.txt")) {wclear(fileNameWin); box(fileNameWin, 0, 0); mvwprintw(fileNameWin, 1, 1, "%s", orgfile); wrefresh(fileNameWin);}
+                            break;
+                        }
+                        else if (dir == 'k'){
+                            cut("deitel.txt", posToLine(start, lines), posToPos(start, lines, whichLine + cursorY - 1), end - start, 'f');
+                            printFile(filewin, "deitel.txt", whichLine);
+                            lineSize("deitel.txt", lines); RLineSize("deitel.txt",  RLines);
+                            if (orgfile[strlen(orgfile) - 1] != '+') strncat(orgfile, " +", 2);
+                            if (!str_cmp(saveFileName, "deitel.txt")) {wclear(fileNameWin); box(fileNameWin, 0, 0); mvwprintw(fileNameWin, 1, 1, "%s", orgfile); wrefresh(fileNameWin);}
+                            break;
+                        }
+                        else if(dir == 'c'){
+                            cpy("deitel.txt", posToLine(start, lines), posToPos(start, lines, whichLine + cursorY - 1), end - start, 'f');
+                            break;
+                        }
+
+                    }
+                    wrefresh(filewin);
                 }
             }
         }
-        else{
-            printf("Invalid input.\n");
-            char line[MAX]; gets(line);
+        //INSERT
+        if (mode == 2){
+            while (1){
+                echo();
+                printstat(stat, command, "INSERT");
+                char a = wgetch(filewin);
+                if (a == '`'){
+                    mode = 0;
+                    noecho();
+                    break;
+                }
+                if (orgfile[strlen(orgfile) - 1] != '+' && str_cmp(orgfile, "deitel.txt") == 0) strncat(orgfile, " +", 2);
+                if (!str_cmp(saveFileName, "deitel.txt")) {wclear(fileNameWin); box(fileNameWin, 0, 0); mvwprintw(fileNameWin, 1, 1, "%s", orgfile); wrefresh(fileNameWin);}
+                int current = 0;
+                int currentPos = cursorX - numSize(whichLine + cursorY - 1);
+                for (int i = 0; i < whichLine + cursorY - 2; i++){
+                    current += lines[i];
+                }
+                current += currentPos;
+                char b[2]; b[0] = a; b[1] = '\0';
+                if (a != 27) insert("deitel.txt", b, whichLine + cursorY - 1, currentPos);
+                printFile(filewin, "deitel.txt", whichLine);
+                lineSize("deitel.txt", lines); RLineSize("deitel.txt",  RLines);
+                if (a == 27){
+                    // rmv("deitel.txt", whichLine + cursorY - 1, currentPos, 2, 'b');
+                    rmv("deitel.txt", whichLine + cursorY - 1, currentPos, 1, 'b');
+                    if (cursorX != numSize(whichLine + cursorY - 1)) cursorX--;
+                    else{
+                        cursorX = lines[whichLine + cursorY - 3] + 2;
+                        cursorY--;
+                    }
+                    printFile(filewin, "deitel.txt", whichLine);
+                    lineSize("deitel.txt", lines); RLineSize("deitel.txt",  RLines);
+                }
+                else if (a != '\n'){
+                    cursorX++;
+                }
+                else{
+                    cursorY++;
+                    cursorX = numSize(whichLine + cursorY - 1);
+                }
+                wmove(filewin, cursorY, cursorX); wrefresh(filewin);
+
+            }
         }
     }
+    
+    
+    getch();
+    endwin();
+    return 0;
 }
