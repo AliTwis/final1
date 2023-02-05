@@ -629,11 +629,11 @@ int text_cmp(char file_name1[], char file_name2[]){
         line1[0] = '\0'; line2[0] = '\0';
         fgets(line1, MAX, file1);
         fgets(line2, MAX, file2);
-        if(line1[0] == '\0'){
+        if(line1[0] == '\0' && line2[0] != '\0'){
             big2 = 1;
             break;
         }
-        if (line2[0] == '\0'){
+        if (line2[0] == '\0' && line1[0] != '\0'){
             big1 = 1;
             break;
         }
