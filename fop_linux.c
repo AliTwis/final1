@@ -1,6 +1,7 @@
 #include <stdio.h> 
 #include <dirent.h>
 #include <unistd.h>
+#define MAX 1000
 
 int str_len(char strr[]){
     char ans = strlen(strr);
@@ -27,8 +28,8 @@ int check_exist(char file_name[]){
     }
 }
 
-int save(char file_name[100]){
-    char save_file[100] = "saving/";
+int save(char file_name[]){
+    char save_file[MAX] = "saving/";
     for (int i = 0; i < str_len(file_name); i++){
         save_file[7 + i] = file_name[i];
     }
@@ -36,10 +37,10 @@ int save(char file_name[100]){
     FILE *file = fopen(file_name, "r");
     remove(save_file);
     FILE *filesave = fopen(save_file, "w");
-    char line[300]; line[0] = '`';
+    char line[MAX]; line[0] = '`';
     while (line[0] != '\0'){
         line[0] = '\0';
-        fgets(line, 300, file);
+        fgets(line, MAX, file);
         if (line[0] != '\0') fprintf(filesave, "%s", line);
     }
     fclose(file);
@@ -47,19 +48,19 @@ int save(char file_name[100]){
     return 1;
 }
 
-int undo(char file_name[100]){
+int undo(char file_name[]){
     FILE *file = fopen(file_name, "r+");
-    char save_file[100] = "saving/";
+    char save_file[MAX] = "saving/";
     for (int i = 0; i < str_len(file_name); i++){
         save_file[7 + i] = file_name[i];
     }
     save_file[7 + str_len(file_name)] = '\0';
     FILE *filesave = fopen(save_file, "r");
     FILE *filetemp = fopen("saving/root/temp_file.txt", "w+");
-    char line[300]; line[0] = '`';
+    char line[MAX]; line[0] = '`';
     while (line[0] != '\0'){
         line[0] = '\0';
-        fgets(line, 300, file);
+        fgets(line, MAX, file);
         if (line[0] != '\0') fprintf(filetemp, "%s", line);
     }
     fclose(file);
@@ -67,7 +68,7 @@ int undo(char file_name[100]){
     line[0] = '`';
     while (line[0] != '\0'){
         line[0] = '\0';
-        fgets(line, 300, filesave);
+        fgets(line, MAX, filesave);
         if (line[0] != '\0') fprintf(file, "%s", line);
     }
     fclose(file);
@@ -116,7 +117,7 @@ int dir_addresses(char file_address[], char address[][100]){
     return t;
 }
 
-int create_file(char address[100]){
+int create_file(char address[]){
     if (access(address, F_OK) == 0){
         return 0;
     }
@@ -127,7 +128,7 @@ int create_file(char address[100]){
 
 int make_message(char old_message[], char new_message[]){//making \n and making " from \"
     int head = 0;
-    for (int i = 0; i < 100; i++){
+    for (int i = 0; i < MAX; i++){
         if(old_message[i] == '\0') break;
         if (old_message[i] != '\\'){
             new_message[head] = old_message[i];
@@ -186,16 +187,15 @@ int inp_q(char input[]){//input with "
     return index;
 }
 
-void insert(char file_name[100], char message[500], int ln, int pos){
+void insert(char file_name[], char message[], int ln, int pos){
     save(file_name);
     FILE *file = fopen(file_name, "r+");
     FILE *filetemp = fopen("temp_file.txt", "w");
     //declaring line for getting each line of the file. rest is for saving rest of the file from the given position.
-    char line[300]; line[0] = '`';
-    char rest[100][300];
+    char line[MAX]; line[0] = '`';
     //jumping to the line
     for (int l = 0; l < ln - 1; l++){
-        fgets(line, 100, file);
+        fgets(line, MAX, file);
         fprintf(filetemp, "%s", line);
     }
     if (ln == 1){
@@ -213,7 +213,7 @@ void insert(char file_name[100], char message[500], int ln, int pos){
     line[0] = '`';
     while (line[0] != '\0'){
         line[0] = '\0';
-        fgets(line, 100, file);
+        fgets(line, MAX, file);
         fprintf(filetemp, "%s", line);
     }
     //changing names
@@ -223,29 +223,28 @@ void insert(char file_name[100], char message[500], int ln, int pos){
     rename("temp_file.txt", file_name);
 }
 
-void cat(char file_name[100]){
+void cat(char file_name[]){
     FILE *file = fopen(file_name, "r");
     FILE *fileans = fopen("ans.txt", "w");
-    char line[100];
+    char line[MAX];
     line[0] = '`';
     while (line[0] != '\0'){
         line[0] = '\0';
-        fgets(line, 100, file);
+        fgets(line, MAX, file);
         fprintf(fileans, "%s", line);
     }
     fclose(file);
     fclose(fileans);
 }
 
-void rmv(char file_name[100], int ln, int pos, int size, char dir){
+void rmv(char file_name[], int ln, int pos, int size, char dir){
     save(file_name);
     FILE *file = fopen(file_name, "r+");
     //declaring line for getting each line of the file. rest is for saving rest of the file from the given position.
-    char line[300]; line[0] = '`';
-    char rest[100][300];
+    char line[MAX]; line[0] = '`';
     //jumping to the line
     for (int l = 0; l < ln - 1; l++){
-        fgets(line, 300, file);
+        fgets(line, MAX, file);
     }
 
     //goint to pos
@@ -270,7 +269,7 @@ void rmv(char file_name[100], int ln, int pos, int size, char dir){
     line[0] = '`';
     while (line[0] != '\0'){
         line[0] = '\0';
-        fgets(line, 100, file);
+        fgets(line, MAX, file);
         if (line[0] != '\0') fprintf(filetemp, "%s", line);
     }
     fclose(filetemp);
@@ -280,17 +279,17 @@ void rmv(char file_name[100], int ln, int pos, int size, char dir){
 
 }
 
-int cpy(char file_name[100], int ln, int pos, int size, char dir){
+int cpy(char file_name[], int ln, int pos, int size, char dir){
     FILE *file = fopen(file_name, "r");
-    char line[300];//saving lines
+    char line[MAX];//saving lines
     for (int i = 0; i < ln - 1; i++){
-        fgets(line, 300, file);
+        fgets(line, MAX, file);
     }
     char letter;//skipping letters until pos
     for (int i = 0; i <= pos; i++){
         fscanf(file, "%c", &letter);
     }
-    char ans[300];
+    char ans[MAX];
     if (dir == 'b') fseek(file, -size - 1, SEEK_CUR);
     for (int i = 0; i < size; i++){
         fscanf(file, "%c", &ans[i]);
@@ -302,19 +301,19 @@ int cpy(char file_name[100], int ln, int pos, int size, char dir){
     fclose(filecpy);
 }
 
-int cut(char file_name[100], int ln, int pos, int size, char dir){
+int cut(char file_name[], int ln, int pos, int size, char dir){
     cpy(file_name, ln, pos, size, dir);
     rmv(file_name, ln, pos, size, dir);
 
 }
 
-int ppaste(char file_name[100], int ln, int pos){
+int ppaste(char file_name[], int ln, int pos){
     save(file_name);
     FILE *file = fopen(file_name, "r");
     FILE *filetemp = fopen("root/temp_file.txt", "w");
-    char line[300]; line[0] = '`';//saving each line of the file until the target
+    char line[MAX]; line[0] = '`';//saving each line of the file until the target
     for (int i = 0; i < ln - 1; i++){
-        fgets(line, 300, file);
+        fgets(line, MAX, file);
         fprintf(filetemp, "%s", line);
     }
     char letter;//letters in ln until pos
@@ -327,13 +326,13 @@ int ppaste(char file_name[100], int ln, int pos){
     line[0] = '`';
     while (line[0] != '\0'){
         line[0] = '\0';
-        fgets(line, 100, filecpy);
+        fgets(line, MAX, filecpy);
         if (line[0] != '\0') fprintf(filetemp, "%s", line);
     }
     line[0] = '`';
     while (line[0] != '\0'){
         line[0] = '\0';
-        fgets(line, 100, file);
+        fgets(line, MAX, file);
         if (line[0] != '\0') fprintf(filetemp, "%s", line);
     }
     fclose(filecpy);
@@ -399,7 +398,7 @@ int findd_cmp(char target[], int t_star, char check[]){
 
 int make_message_findd(char old_message[], char new_message[]){//making \n and making " from \"
     int head = 0;
-    for (int i = 0; i < 500; i++){
+    for (int i = 0; i < MAX; i++){
         if(old_message[i] == '\0') break;
         if (old_message[i] != '\\' && old_message[i] != '*'){
             new_message[head] = old_message[i];
@@ -429,11 +428,11 @@ int findd(char target[][100], int target_size, char file_name[], int star_list[]
     char word[50];
     int line_pos = 0;//saving the SEEK_CUR for end of each line until we find a match
     int tedad = 0;//amount of matches
-    char line[300]; line[0] = '`';
+    char line[MAX]; line[0] = '`';
     while (line[0] != '\0'){
         line[0] = '\0';
-        fgets(line, 300, file);
-        char words[300][100];
+        fgets(line, MAX, file);
+        char words[MAX][MAX];
         int word_tedad = split_space(line, words);
         for (int index = 0; index <= word_tedad - target_size; index++){
             int match = 1;//checking if this location is a match
@@ -478,11 +477,11 @@ int findd_word(char target[][100], int target_size, char file_name[], int star_l
     char word[50];
     int line_pos = 0;//saving the SEEK_CUR for end of each line until we find a match
     int tedad = 0;//amount of matches
-    char line[300]; line[0] = '`';
+    char line[MAX]; line[0] = '`';
     while (line[0] != '\0'){
         line[0] = '\0';
-        fgets(line, 300, file);
-        char words[300][100];
+        fgets(line, MAX, file);
+        char words[MAX][100];
         int word_tedad = split_space(line, words);
         for (int index = 0; index <= word_tedad - target_size; index++){
             int match = 1;//checking if this location is a match
@@ -525,12 +524,12 @@ int replace(char file_name[], char target[][100],  int target_size, char new[], 
     char word[50];
     int tedad = 0;//amount of matches
     int which_line = 0;//which line are we in file
-    char line[300]; line[0] = '`';
+    char line[MAX]; line[0] = '`';
     while (line[0] != '\0'){
         line[0] = '\0';
-        fgets(line, 300, file);
+        fgets(line, MAX, file);
         if (which_line && line[0] != '\0') fprintf(filetemp, "\n");//going to next line in temp file
-        char words[300][100];
+        char words[MAX][100];
         int word_tedad = split_space(line, words);
         for (int index = 0; index < word_tedad ; index++){
             int match = 1;//checking if this location is a match
@@ -578,10 +577,10 @@ int grep(char file_name[], char target[], int t_size, int option/*0:printing lin
     FILE *file = fopen(file_name, "r+");
     FILE *fileans = fopen("ans.txt", "a");
     //declaring line for getting each line of the file.
-    char line[300]; line[0] = '`';
+    char line[MAX]; line[0] = '`';
     while(line[0] != '\0'){
         line[0] = '\0';
-        fgets(line, 300, file);
+        fgets(line, MAX, file);
         //counting how many characters does this line have
         char temp = line[0];
         int line_size = 0;
@@ -622,14 +621,14 @@ int text_cmp(char file_name1[], char file_name2[]){
     FILE *file1 = fopen(file_name1, "r");
     FILE *file2 = fopen(file_name2, "r");
     FILE *fileans = fopen("ans.txt", "w");
-    char line1[300]; line1[0] = '`';
-    char line2[300]; line2[0] = '`';
+    char line1[MAX]; line1[0] = '`';
+    char line2[MAX]; line2[0] = '`';
     int big1 = 0, big2 = 0;
     int which_line = 1;//seeing which line we are
     while(line1[0] != '\0' || line2[0] != '\0'){
         line1[0] = '\0'; line2[0] = '\0';
-        fgets(line1, 300, file1);
-        fgets(line2, 300, file2);
+        fgets(line1, MAX, file1);
+        fgets(line2, MAX, file2);
         if(line1[0] == '\0'){
             big2 = 1;
             break;
@@ -667,21 +666,21 @@ int text_cmp(char file_name1[], char file_name2[]){
     }
     if (big1){
         int last_line = which_line;
-        char line[300]; line[0] = '`';
+        char line[MAX]; line[0] = '`';
         while(line[0] != '\0'){
             line[0] = '\0';
-            fgets(line, 300, file1);
+            fgets(line, MAX, file1);
             if (line[0] != '\0') last_line++;
         }
         fseek(file1, 0, SEEK_SET);
         for (int i = 0; i < which_line - 1; i++){
-            fgets(line, 300, file1);
+            fgets(line, MAX, file1);
         }
         fprintf(fileans, "====<file1 is bigger:%d - %d>====\n", which_line, last_line);
         line[0] = '`';
         while (line[0] != '\0'){
             line[0] = '\0';
-            fgets(line, 300, file1);
+            fgets(line, MAX, file1);
             fprintf(fileans, "%s", line);
             int tedad = 0;
             char temp = line[0];
@@ -693,21 +692,21 @@ int text_cmp(char file_name1[], char file_name2[]){
     }
     else if (big2){
         int last_line = which_line;
-        char line[300]; line[0] = '`';
+        char line[MAX]; line[0] = '`';
         while(line[0] != '\0'){
             line[0] = '\0';
-            fgets(line, 300, file2);
+            fgets(line, MAX, file2);
             if (line[0] != '\0') last_line++;
         }
         fseek(file2, 0, SEEK_SET);
         for (int i = 0; i < which_line - 1; i++){
-            fgets(line, 300, file2);
+            fgets(line, MAX, file2);
         }
         fprintf(fileans, "====<file2 is bigger:%d - %d>====\n", which_line, last_line);
         line[0] = '`';
         while (line[0] != '\0'){
             line[0] = '\0';
-            fgets(line, 300, file2);
+            fgets(line, MAX, file2);
             fprintf(fileans, "%s", line);
             int tedad = 0;
             char temp = line[0];
@@ -732,7 +731,7 @@ int dirtree(char dir_cur[], int depth, int first_depth){
         char *ent_name = (entity->d_name);
         if (((entity->d_name)[0] == '.' && str_len(ent_name) == 1) || (ent_name[0] == '.' && ent_name[1] == '.' && str_len(ent_name) == 2)) continue;
         int ent_size = str_len(ent_name);
-        char next_dir[100];
+        char next_dir[MAX];
         for (int i = 0; i < dir_size; i++){
             next_dir[i] = dir_cur[i];
         }
@@ -772,12 +771,12 @@ int close_pair(char file_name[]){
     save(file_name);
     FILE *file = fopen(file_name, "r");
     FILE *filetemp = fopen("root/temp_file.txt", "w");
-    char line[300]; line[0] = '`';
+    char line[MAX]; line[0] = '`';
     int is_p = 0;//seeing if we have found a {
     int br = 0;
     while (line[0] != '\0'){
         line[0] = '\0';
-        fgets(line, 300, file);
+        fgets(line, MAX, file);
         int space_amount = 0;
         char letter = line[0];
         int temp_index = 0;//finding space amounts
@@ -888,10 +887,10 @@ int close_pair(char file_name[]){
 
 void print_ans(){
     FILE *fileans = fopen("ans.txt", "r");
-    char line[300]; line[0] = '`';
+    char line[MAX]; line[0] = '`';
     while (line[0] != '\0'){
         line[0] = '\0';
-        fgets(line, 300, fileans);
+        fgets(line, MAX, fileans);
         if (line[0] != '\0') printf("%s", line);
     }
     printf("\n");
@@ -912,11 +911,11 @@ void armann(char arr[]){
 int main(){
     int arman = 0;
     while (1){
-        char order[100];
+        char order[MAX];
         scanf("%s", order);
         if (arman == 0) {FILE *file = fopen("ans.txt", "w"); fclose(file);}
         if (str_cmp(order, "insertstr")){
-            char file_address[100];//getting address of file
+            char file_address[MAX];//getting address of file
             scanf(" --file ");
             char letter;
             scanf("%c", &letter);
@@ -933,7 +932,7 @@ int main(){
                 continue;
             }
              //saving this state of file
-            char temp_matn[500];
+            char temp_matn[MAX];
             if (arman == 0) {    
                 scanf("--str ");
                 scanf("%c", &letter);
@@ -949,7 +948,7 @@ int main(){
                 armann(temp_matn);
                 arman = 0;
             }
-            char matn[500];
+            char matn[MAX];
             make_message(temp_matn, matn);
             int ln = 0; int pos = 0;
             scanf("--pos %d:%d", &ln, &pos);//getting line and pos
@@ -957,7 +956,7 @@ int main(){
         }
         else if (str_cmp(order, "cat")){
             scanf(" --file ");
-            char file_address[100];
+            char file_address[MAX];
             char letter;
             scanf("%c", &letter);
             char end;//checking for arman
@@ -984,7 +983,7 @@ int main(){
             }
         }
         else if (str_cmp(order, "removestr")){
-            char file_address[100];//getting address of file
+            char file_address[MAX];//getting address of file
             scanf(" --file ");
             char letter;
             scanf("%c", &letter);
@@ -1011,7 +1010,7 @@ int main(){
             rmv(file_address, ln, pos, size, dir);
         }
         else if(str_cmp(order, "copystr") || str_cmp(order, "cutstr")){
-            char file_address[100];//getting address of file
+            char file_address[MAX];//getting address of file
             scanf(" --file ");
             char letter;
             scanf("%c", &letter);
@@ -1044,7 +1043,7 @@ int main(){
             }
         }
         else if(str_cmp(order, "pastestr")){
-            char file_address[100];//getting address of file
+            char file_address[MAX];//getting address of file
             scanf(" --file ");
             char letter;
             scanf("%c", &letter);
@@ -1081,7 +1080,7 @@ int main(){
             scanf("str ");
             char letter;
             scanf("%c", &letter);
-            char target_temp[100];
+            char target_temp[MAX];
             if (letter == '"'){
                 inp_q(target_temp);
                 getchar();
@@ -1089,7 +1088,7 @@ int main(){
             else {
                 inp(letter, target_temp);
             }
-            char target[100];
+            char target[MAX];
             make_message(target_temp, target);//making what we are looking for
             scanf("--files ");
             int tedad = 0;//if option is 2, we need to save how many times we saw the target 
@@ -1097,7 +1096,7 @@ int main(){
             char next = '`';
             while (next != '\n'){
                 scanf("%c", &letter);
-                char file_address[100];
+                char file_address[MAX];
                 if (letter == '=') break;
                 if (letter == '"'){
                     inp_q(file_address);
@@ -1146,7 +1145,7 @@ int main(){
         }
         else if(str_cmp(order, "undo")){
             scanf(" --file ");
-            char file_address[100];
+            char file_address[MAX];
             char letter;
             scanf("%c", &letter);
             if (letter == '"'){
@@ -1166,8 +1165,8 @@ int main(){
         }
         else if(str_cmp(order, "compare")){
             getchar();
-            char file_f[100];
-            char file_s[100];
+            char file_f[MAX];
+            char file_s[MAX];
             char letter;
             scanf("%c", &letter);
             if (letter == '"'){
@@ -1225,7 +1224,7 @@ int main(){
         }
         else if(str_cmp(order, "createfile")){
             scanf(" --file ");
-            char file_address[500];
+            char file_address[MAX];
             char letter;
             scanf("%c", &letter);
             if (letter == '"'){
@@ -1235,7 +1234,7 @@ int main(){
             else{
                 inp(letter, file_address);
             }
-            char addresses[30][100];
+            char addresses[MAX][100];
             int t = dir_addresses(file_address, addresses);
             for (int i = 0; i < t - 1; i++){
                 make_dir(addresses[i]);
@@ -1245,7 +1244,7 @@ int main(){
             else(printf("This file already exists.\n"));
         }
         else if(str_cmp(order, "find")){
-            char target[700];
+            char target[MAX];
                 char letter;
             if (arman == 0) {    
                 scanf(" --str ");
@@ -1263,19 +1262,19 @@ int main(){
                 arman = 0;
                 getchar();
             }
-            char words_temp[700][100];//saving words for checking their * condition
+            char words_temp[MAX][100];//saving words for checking their * condition
             int words_amount = split_space(target, words_temp);
-            int stars[700] = {0};
+            int stars[MAX] = {0};
             for (int i = 0; i < words_amount; i++){
                 stars[i] = star(words_temp[i]);
             }
-            char target_final[700];
+            char target_final[MAX];
             make_message_findd(target, target_final);
-            char words[700][100];
+            char words[MAX][100];
             words_amount = split_space(target_final, words);
             scanf("--file ");
             scanf("%c", &letter);
-            char file_address[700];
+            char file_address[MAX];
             int is_space = 0;
             if (letter == '"'){
                 inp_q(file_address);
@@ -1292,7 +1291,7 @@ int main(){
              //saving this state of file
             FILE *fileans = fopen("ans.txt", "w");//saving the output in a file
             if (letter == '\n'){
-                int results[500];
+                int results[MAX];
                 int ans = findd(words, words_amount, file_address, stars, 1, results);
                 fprintf(fileans, "%d", ans);
                 fclose(fileans);
@@ -1304,7 +1303,7 @@ int main(){
                 char end;
                 scanf("%c", &end);
                 if (end == '-') {
-                    int results[500];
+                    int results[MAX];
                     char option[40];
                     scanf("%s", option);
                     if (str_cmp(option, "count")){
@@ -1370,7 +1369,7 @@ int main(){
             scanf(" ");
             char letter;
             scanf("%c", &letter);
-            char file_address[400];
+            char file_address[MAX];
             if (letter == '"'){
                 inp_q(file_address);
                 getchar();
@@ -1388,7 +1387,7 @@ int main(){
         }
         else if(str_cmp(order, "replace")){
             scanf(" --str1 ");
-            char str1[100];
+            char str1[MAX];
             char letter; scanf("%c", &letter);
             if (letter == '"'){
                 inp_q(str1);
@@ -1398,7 +1397,7 @@ int main(){
                 inp(letter, str1);
             }
             
-            char str2[100];
+            char str2[MAX];
             if (arman == 0){    
                 scanf("--str2 ");
                 scanf("%c", &letter);
@@ -1414,22 +1413,22 @@ int main(){
                 arman = 0;
                 armann(str2);
             }
-            char words_temp[700][100];//saving words for checking their * condition
+            char words_temp[MAX][100];//saving words for checking their * condition
             int words_amount = split_space(str1, words_temp);
-            int stars[700] = {0};
+            int stars[MAX] = {0};
             for (int i = 0; i < words_amount; i++){
                 stars[i] = star(words_temp[i]);
             }
 
-            char target_final[700];//eliminating extra * and /
+            char target_final[MAX];//eliminating extra * and /
             make_message_findd(str1, target_final);
-            char words[700][100];
+            char words[MAX][100];
             words_amount = split_space(target_final, words);
 
-            char new[100];
+            char new[MAX];
             make_message(str2, new);    
             scanf("--file ");
-            char file_address[100];
+            char file_address[MAX];
             scanf("%c", &letter);
             char end;//checking if user want to use an option
             if (letter == '"'){
@@ -1472,7 +1471,7 @@ int main(){
         }
         else{
             printf("Invalid input.\n");
-            char line[100]; gets(line);
+            char line[MAX]; gets(line);
         }
     }
 }
